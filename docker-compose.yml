@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: coworking_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - coworking_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: coworking_backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_INITDB_DATABASE}?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: http://localhost:3000
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - coworking_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: coworking_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      INTERNAL_API_URL: http://backend:5000/api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    networks:
+      - coworking_net
+
+networks:
+  coworking_net:
+    driver: bridge
+
+volumes:
+  mongo_data:
