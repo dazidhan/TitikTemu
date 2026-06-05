@@ -158,20 +158,6 @@ Proyek ini dilengkapi dengan dokumentasi API interaktif menggunakan **Swagger UI
 
 ---
 
-## 🔒 Konfigurasi Keamanan Lingkungan (Environment Variables)
-
-Demi alasan keamanan dan kesesuaian sebagai portofolio umum, berkas asli `.env` yang berisi kredensial sensitif diabaikan oleh Git via `.gitignore`. 
-
-Anda harus membuat file konfigurasi secara mandiri berdasarkan file template berikut:
-*   [Root .env.example (untuk Docker Compose)](file:///C:/Users/dhaff/Documents/Dhaffazik/Kuliah/Sistem%20Informasi/Co-Working%20Space%20Management/.env.example)
-*   [Backend .env.example (untuk API Lokal)](file:///C:/Users/dhaff/Documents/Dhaffazik/Kuliah/Sistem%20Informasi/Co-Working%20Space%20Management/backend/.env.example)
-*   [Frontend .env.example (untuk Next.js Lokal)](file:///C:/Users/dhaff/Documents/Dhaffazik/Kuliah/Sistem%20Informasi/Co-Working%20Space%20Management/frontend/.env.example)
-
-> [!WARNING]
-> **PENTING:** Jangan pernah men-commit file `.env` asli atau kunci API Midtrans Anda ke repositori publik GitHub. Gunakan file `.env.example` di atas sebagai panduan konfigurasi bagi kontributor lain.
-
----
-
 ## 🔑 Akun Uji Coba Default (Demo Accounts)
 
 Setelah menjalankan skrip seeder (`npm run seed`), Anda dapat menggunakan akun berikut untuk menguji fitur aplikasi:
@@ -182,48 +168,3 @@ Setelah menjalankan skrip seeder (`npm run seed`), Anda dapat menggunakan akun b
 | **Pengguna Umum (User)** | `user@ledger.com` | `User@1234` |
 
 ---
-
-## 🌐 Dokumentasi API Endpoints
-
-Seluruh API Endpoint dilindungi CORS dan menggunakan otentikasi JWT Cookie.
-
-> [!TIP]
-> **Dokumentasi API Interaktif (Swagger UI):**
-> Anda dapat menjelajahi seluruh dokumentasi API ini secara interaktif, lengkap dengan skema input/output serta contoh respons riil, melalui Swagger UI di alamat: **[http://localhost:5000/api/docs](http://localhost:5000/api/docs)**.
-
-### 🔐 Autentikasi (`/api/auth`)
-| Metode | Endpoint | Deskripsi | Akses |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Mendaftarkan pengguna baru | Publik |
-| `POST` | `/api/auth/login` | Login akun & kirim httpOnly JWT Cookie | Publik |
-| `POST` | `/api/auth/logout` | Membersihkan JWT Cookie (Logout) | Publik |
-| `GET` | `/api/auth/me` | Mengambil data profil pengguna aktif | Pengguna |
-| `PUT` | `/api/auth/profile` | Memperbarui informasi profil pengguna | Pengguna |
-
-### 🏢 Area Kerja (`/api/spaces`)
-| Metode | Endpoint | Deskripsi | Akses |
-|---|---|---|---|
-| `GET` | `/api/spaces` | Mengambil semua daftar ruangan | Publik |
-| `GET` | `/api/spaces/:id` | Mengambil detail spesifik satu ruangan | Publik |
-| `GET` | `/api/spaces/:id/bookings` | Mengambil slot waktu yang sudah dibooking | Publik |
-| `POST` | `/api/spaces` | Membuat data ruangan baru | Administrator |
-| `PUT` | `/api/spaces/:id` | Memperbarui data ruangan | Administrator |
-| `DELETE` | `/api/spaces/:id` | Menghapus ruangan dari sistem | Administrator |
-
-### 📅 Reservasi & Pemesanan (`/api/bookings`)
-| Metode | Endpoint | Deskripsi | Akses |
-|---|---|---|---|
-| `GET` | `/api/bookings` | Mengambil seluruh pemesanan milik pengguna aktif | Pengguna |
-| `GET` | `/api/bookings/:id` | Mengambil detail spesifik satu pemesanan | Pengguna |
-| `POST` | `/api/bookings` | Membuat reservasi ruang kerja baru | Pengguna |
-| `PATCH` | `/api/bookings/:id/status` | Memperbarui status pembayaran transaksi | Pengguna/Admin |
-| `GET` | `/api/bookings/:id/midtrans-token` | Mendapatkan token pembayaran Snap Midtrans | Pengguna |
-| `POST` | `/api/bookings/:id/pay` | Simulasi konfirmasi pembayaran sukses | Pengguna |
-
-### 📊 Layanan Admin (`/api/admin`)
-| Metode | Endpoint | Deskripsi | Akses |
-|---|---|---|---|
-| `GET` | `/api/admin/stats` | Statistik transaksi dan finansial dashboard | Administrator |
-| `GET` | `/api/admin/bookings` | Mengambil seluruh riwayat pemesanan semua pengguna | Administrator |
-| `PATCH` | `/api/admin/bookings/:id` | Memperbarui status reservasi secara langsung | Administrator |
-| `GET` | `/api/admin/users` | Mengambil daftar seluruh pengguna terdaftar | Administrator |
