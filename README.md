@@ -5,6 +5,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green?logo=mongodb)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue?logo=docker)](https://www.docker.com/)
 [![Midtrans](https://img.shields.io/badge/Payment-Midtrans_Snap-blue)](https://midtrans.com/)
+[![Swagger](https://img.shields.io/badge/Swagger-API_Docs-85EA2D?logo=swagger&logoColor=black)](http://localhost:5000/api/docs)
 
 **TitikTemu** adalah platform manajemen dan pemesanan slot area kerja (*co-working space*) berbasis web yang dirancang untuk memberikan kemudahan bagi pengguna dalam mencari dan memesan ruangan secara *real-time*. Proyek ini diimplementasikan sebagai aplikasi *full-stack* modern yang mengintegrasikan gerbang pembayaran (*payment gateway*) Midtrans untuk simulasi transaksi yang aman dan andal.
 
@@ -104,6 +105,7 @@ Pastikan Anda telah menginstal [Docker Desktop](https://www.docker.com/products/
 Aplikasi sekarang dapat diakses melalui browser Anda:
 *   **Frontend Web:** [http://localhost:3000](http://localhost:3000)
 *   **Backend REST API:** [http://localhost:5000/api](http://localhost:5000/api)
+*   **Dokumentasi API (Swagger UI):** [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
 *   **MongoDB Instance:** `localhost:27017`
 
 ---
@@ -141,6 +143,21 @@ npm run dev
 
 ---
 
+## 📖 Dokumentasi API (Swagger UI)
+
+Proyek ini dilengkapi dengan dokumentasi API interaktif menggunakan **Swagger UI**. Hal ini memudahkan Anda untuk meninjau seluruh daftar endpoint, format request (header, body, parameter), tipe data model, serta melakukan pengujian API secara langsung dari browser.
+
+### Cara Mengakses:
+1. Pastikan server backend sedang berjalan (baik melalui Docker maupun secara native).
+2. Buka browser dan akses tautan berikut:
+   * **Swagger UI Docs:** [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
+
+### Fitur Dokumentasi:
+*   **Pengujian Interaktif:** Anda dapat mencoba langsung setiap endpoint (seperti registrasi, login, pemesanan, dll.) menggunakan tombol **"Try it out"**.
+*   **Otentikasi Cookie (JWT):** Setelah berhasil login melalui endpoint `/api/auth/login`, cookie JWT (`token`) akan tersimpan di browser secara otomatis untuk mengotorisasi endpoint lain.
+
+---
+
 ## 🔒 Konfigurasi Keamanan Lingkungan (Environment Variables)
 
 Demi alasan keamanan dan kesesuaian sebagai portofolio umum, berkas asli `.env` yang berisi kredensial sensitif diabaikan oleh Git via `.gitignore`. 
@@ -169,6 +186,10 @@ Setelah menjalankan skrip seeder (`npm run seed`), Anda dapat menggunakan akun b
 ## 🌐 Dokumentasi API Endpoints
 
 Seluruh API Endpoint dilindungi CORS dan menggunakan otentikasi JWT Cookie.
+
+> [!TIP]
+> **Dokumentasi API Interaktif (Swagger UI):**
+> Anda dapat menjelajahi seluruh dokumentasi API ini secara interaktif, lengkap dengan skema input/output serta contoh respons riil, melalui Swagger UI di alamat: **[http://localhost:5000/api/docs](http://localhost:5000/api/docs)**.
 
 ### 🔐 Autentikasi (`/api/auth`)
 | Metode | Endpoint | Deskripsi | Akses |

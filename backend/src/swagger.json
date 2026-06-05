@@ -1,0 +1,882 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "TitikTemu API Documentation",
+    "description": "Dokumentasi RESTful API untuk Sistem Manajemen & Booking Co-Working Space **TitikTemu**. Kebanyakan endpoint memerlukan autentikasi menggunakan stateless JWT yang disimpan dalam cookie HttpOnly bernama `token`.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "TitikTemu Support Team",
+      "email": "support@titiktemu.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Development Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Sistem Autentikasi dan Manajemen Profil Pengguna"
+    },
+    {
+      "name": "Spaces",
+      "description": "Manajemen & Eksplorasi Ruang Kerja (Co-Working Spaces)"
+    },
+    {
+      "name": "Bookings",
+      "description": "Proses Booking & Pembayaran (Integrasi Midtrans)"
+    },
+    {
+      "name": "Admin",
+      "description": "Dashboard Statistik & Manajemen Transaksi Global"
+    }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Mendaftarkan pengguna baru (Public)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string", "example": "Ahmad Dani" },
+                  "email": { "type": "string", "format": "email", "example": "ahmaddani@gmail.com" },
+                  "password": { "type": "string", "format": "password", "minLength": 6, "example": "Password123" },
+                  "phone": { "type": "string", "example": "081234567890" },
+                  "company": { "type": "string", "example": "PT Maju Bersama" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pengguna berhasil didaftarkan dan cookie token diset",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string", "example": "token=jwt_token_here; HttpOnly; Secure; Path=/;" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi input gagal atau email sudah terdaftar",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login Pengguna & Mendapatkan Cookie Token (Public)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "user@ledger.com" },
+                  "password": { "type": "string", "format": "password", "example": "User@1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login berhasil, mengirimkan JWT cookie",
+            "headers": {
+              "Set-Cookie": {
+                "schema": { "type": "string", "example": "token=jwt_token_here; HttpOnly; Path=/;" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Kredensial tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout Pengguna & Menghapus Cookie Token (Public)",
+        "responses": {
+          "200": {
+            "description": "Logout berhasil, cookie dihapus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Logged out successfully" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Mendapatkan profil pengguna aktif (User/Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profil berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Tidak diizinkan karena token tidak valid atau kosong",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/profile": {
+      "put": {
+        "tags": ["Auth"],
+        "summary": "Memperbarui informasi profil pengguna aktif (User/Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Ahmad Dani Edit" },
+                  "phone": { "type": "string", "example": "089988776655" },
+                  "company": { "type": "string", "example": "PT Maju Terus" },
+                  "avatar": { "type": "string", "example": "https://avatar-url.com/me.png" },
+                  "password": { "type": "string", "minLength": 6, "example": "NewPassword123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profil berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Tidak diizinkan",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/spaces": {
+      "get": {
+        "tags": ["Spaces"],
+        "summary": "Mendapatkan daftar semua ruang kerja (Public)",
+        "parameters": [
+          { "name": "type", "in": "query", "description": "Filter tipe ruangan", "schema": { "type": "string", "enum": ["Hot Desk", "Meeting Room", "Private Office", "Studio", "Event Space"] } },
+          { "name": "status", "in": "query", "description": "Filter status ruangan", "schema": { "type": "string", "enum": ["available", "maintenance", "unavailable"] } },
+          { "name": "featured", "in": "query", "description": "Filter ruangan unggulan", "schema": { "type": "boolean" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar ruang kerja berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 2 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Space" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Spaces"],
+        "summary": "Membuat ruang kerja baru (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "description", "type", "capacity", "pricePerHour", "location"],
+                "properties": {
+                  "name": { "type": "string", "example": "Ruang Kolaborasi A" },
+                  "description": { "type": "string", "example": "Ruang rapat modern lengkap dengan proyektor dan papan tulis pintar." },
+                  "type": { "type": "string", "enum": ["Hot Desk", "Meeting Room", "Private Office", "Studio", "Event Space"], "example": "Meeting Room" },
+                  "capacity": { "type": "integer", "minimum": 1, "example": 10 },
+                  "pricePerHour": { "type": "number", "minimum": 0, "example": 50000 },
+                  "amenities": { "type": "array", "items": { "type": "string" }, "example": ["Wi-Fi", "Projector", "Whiteboard", "AC"] },
+                  "images": { "type": "array", "items": { "type": "string" }, "example": ["https://images.unsplash.com/photo-1517502884422-41eaaced0168"] },
+                  "location": { "type": "string", "example": "Lantai 2, Gedung A" },
+                  "status": { "type": "string", "enum": ["available", "maintenance", "unavailable"], "example": "available" },
+                  "featured": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ruang kerja berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Space" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Tidak diizinkan karena belum login" },
+          "403": { "description": "Dilarang mengakses karena bukan admin" }
+        }
+      }
+    },
+    "/api/spaces/{id}": {
+      "get": {
+        "tags": ["Spaces"],
+        "summary": "Mendapatkan detail satu ruang kerja (Public)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Ruang Kerja", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail ruang kerja berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Space" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ruang kerja tidak ditemukan",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Spaces"],
+        "summary": "Memperbarui data ruang kerja (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Ruang Kerja", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Ruang Kolaborasi B" },
+                  "pricePerHour": { "type": "number", "example": 55000 },
+                  "status": { "type": "string", "enum": ["available", "maintenance", "unavailable"], "example": "maintenance" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ruang kerja berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Space" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Ruang kerja tidak ditemukan" }
+        }
+      },
+      "delete": {
+        "tags": ["Spaces"],
+        "summary": "Menghapus ruang kerja dari sistem (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Ruang Kerja", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ruang kerja berhasil dihapus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Space deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Ruang kerja tidak ditemukan" }
+        }
+      }
+    },
+    "/api/spaces/{id}/bookings": {
+      "get": {
+        "tags": ["Spaces"],
+        "summary": "Mengambil ketersediaan / slot waktu ruangan yang sudah terisi (Public)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Ruang Kerja", "schema": { "type": "string" } },
+          { "name": "date", "in": "query", "required": true, "description": "Format tanggal (YYYY-MM-DD)", "schema": { "type": "string", "format": "date", "example": "2026-06-06" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar slot waktu terisi berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "startTime": { "type": "string", "example": "09:00" },
+                          "endTime": { "type": "string", "example": "12:00" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "Mendapatkan daftar booking milik pengguna aktif (User)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Daftar booking berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 1 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Booking" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Membuat reservasi booking baru (User)",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["space", "date", "startTime", "endTime"],
+                "properties": {
+                  "space": { "type": "string", "description": "ID Ruangan", "example": "6612c6a0c5b5257529439f03" },
+                  "date": { "type": "string", "format": "date", "description": "Tanggal Booking (YYYY-MM-DD)", "example": "2026-06-06" },
+                  "startTime": { "type": "string", "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$", "description": "Format 24 jam HH:MM", "example": "09:00" },
+                  "endTime": { "type": "string", "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$", "description": "Format 24 jam HH:MM", "example": "12:00" },
+                  "notes": { "type": "string", "example": "Butuh colokan listrik tambahan" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Booking" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi salah, ruangan sedang maintenance, atau jam bentrok (double-booking)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "Mendapatkan detail booking berdasarkan ID (User)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Booking", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail booking berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Booking" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Booking tidak ditemukan" }
+        }
+      }
+    },
+    "/api/bookings/{id}/status": {
+      "patch": {
+        "tags": ["Bookings"],
+        "summary": "Memperbarui status booking (User/Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Booking", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["pending", "paid", "cancelled", "completed"], "example": "cancelled" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status booking berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Booking" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}/midtrans-token": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "Mendapatkan snap token Midtrans untuk transaksi pembayaran (User)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Booking", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token berhasil digenerate oleh Midtrans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "token": { "type": "string", "description": "Snap Token Midtrans", "example": "fdf76cb5-e51c-43f1-b4f7-7bbf1cf03f56" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Pembayaran untuk booking ini sudah selesai atau dibatalkan"
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}/pay": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Simulasi / konfirmasi pembayaran booking (User)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Booking", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["paymentMethod"],
+                "properties": {
+                  "paymentMethod": { "type": "string", "example": "GoPay / Bank Transfer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Simulasi pembayaran sukses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Payment simulation successful" },
+                    "data": { "$ref": "#/components/schemas/Booking" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/stats": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Mengambil ringkasan statistik keuangan & sistem (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Statistik berhasil dimuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalEarnings": { "type": "number", "example": 15000000 },
+                        "totalBookings": { "type": "integer", "example": 48 },
+                        "activeUsers": { "type": "integer", "example": 25 },
+                        "totalSpaces": { "type": "integer", "example": 8 },
+                        "recentBookings": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Booking" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/bookings": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Mengambil semua daftar booking semua user di sistem (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Semua data booking berhasil dimuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 10 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Booking" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/bookings/{id}": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Memperbarui status booking apapun (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "ID Booking", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["pending", "paid", "cancelled", "completed"], "example": "completed" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status booking berhasil diperbarui oleh admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Booking" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Mengambil daftar seluruh pengguna terdaftar di sistem (Admin)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Daftar pengguna berhasil dimuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 12 },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/User" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token",
+        "description": "JWT autentikasi diletakkan secara otomatis di httpOnly cookie bernama `token`."
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "6612c6a0c5b5257529439e01" },
+          "name": { "type": "string", "example": "Ahmad Dani" },
+          "email": { "type": "string", "format": "email", "example": "ahmaddani@gmail.com" },
+          "role": { "type": "string", "enum": ["user", "admin"], "example": "user" },
+          "phone": { "type": "string", "example": "081234567890" },
+          "company": { "type": "string", "example": "PT Maju Bersama" },
+          "avatar": { "type": "string", "example": "https://avatar-url.com/ahmaddani.png" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-06-05T17:34:41.000Z" },
+          "updatedAt": { "type": "string", "format": "date-time", "example": "2026-06-05T17:34:41.000Z" }
+        }
+      },
+      "Space": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "6612c6a0c5b5257529439f03" },
+          "name": { "type": "string", "example": "Ruang Kolaborasi A" },
+          "description": { "type": "string", "example": "Ruang rapat modern lengkap dengan proyektor dan papan tulis pintar." },
+          "type": { "type": "string", "enum": ["Hot Desk", "Meeting Room", "Private Office", "Studio", "Event Space"], "example": "Meeting Room" },
+          "capacity": { "type": "integer", "example": 10 },
+          "pricePerHour": { "type": "number", "example": 50000 },
+          "amenities": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["Wi-Fi", "Projector", "Whiteboard", "AC"]
+          },
+          "images": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["https://images.unsplash.com/photo-1517502884422-41eaaced0168"]
+          },
+          "location": { "type": "string", "example": "Lantai 2, Gedung A" },
+          "status": { "type": "string", "enum": ["available", "maintenance", "unavailable"], "example": "available" },
+          "rating": { "type": "number", "example": 4.8 },
+          "reviewCount": { "type": "integer", "example": 15 },
+          "featured": { "type": "boolean", "example": true },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-06-05T17:34:41.000Z" },
+          "updatedAt": { "type": "string", "format": "date-time", "example": "2026-06-05T17:34:41.000Z" }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "6612c6b3c5b5257529439f0a" },
+          "user": {
+            "oneOf": [
+              { "type": "string", "description": "ID User saja jika tidak di-populate", "example": "6612c6a0c5b5257529439e01" },
+              { "$ref": "#/components/schemas/User" }
+            ]
+          },
+          "space": {
+            "oneOf": [
+              { "type": "string", "description": "ID Space saja jika tidak di-populate", "example": "6612c6a0c5b5257529439f03" },
+              { "$ref": "#/components/schemas/Space" }
+            ]
+          },
+          "date": { "type": "string", "format": "date-time", "example": "2026-06-06T00:00:00.000Z" },
+          "startTime": { "type": "string", "example": "09:00" },
+          "endTime": { "type": "string", "example": "12:00" },
+          "totalHours": { "type": "number", "example": 3 },
+          "totalPrice": { "type": "number", "example": 150000 },
+          "serviceFee": { "type": "number", "example": 5000 },
+          "status": { "type": "string", "enum": ["pending", "paid", "cancelled", "completed"], "example": "pending" },
+          "paymentMethod": { "type": "string", "example": "Midtrans Bank Transfer" },
+          "notes": { "type": "string", "example": "Butuh colokan listrik tambahan" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-06-05T17:34:41.000Z" },
+          "updatedAt": { "type": "string", "format": "date-time", "example": "2026-06-05T17:34:41.000Z" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Error description here" }
+        }
+      }
+    }
+  }
+}
